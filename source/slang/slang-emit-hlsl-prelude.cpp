@@ -46,10 +46,7 @@ vector<OutElTy, MatM> __slang_linalg_Mul(
         dx::linalg::MatrixUse::A,
         dx::linalg::MatrixScope::Thread>;
     MatTy mat = MatTy::template Load<LoadLayout>(matBuf, matOff, matStr);
-    return dx::linalg::MultiplyAdd<OutElTy>(
-        mat,
-        dx::linalg::MakeInterpretedVector<InputDT>(input),
-        (vector<OutElTy, MatM>)0);
+    return dx::linalg::Multiply<OutElTy>(mat, input);
 }
 
 template<
@@ -82,10 +79,7 @@ vector<OutElTy, MatM> __slang_linalg_MulAdd(
     MatTy mat = MatTy::template Load<LoadLayout>(matBuf, matOff, matStr);
     using BiasVecTy = vector<BiasElTy, BiasVecDim>;
     BiasVecTy biasVec = biasBuf.template Load<BiasVecTy>(biasOff);
-    return dx::linalg::MultiplyAdd<OutElTy>(
-        mat,
-        dx::linalg::MakeInterpretedVector<InputDT>(input),
-        biasVec);
+    return dx::linalg::MultiplyAdd<OutElTy>(mat, input, biasVec);
 }
 
 template<
@@ -115,7 +109,13 @@ void __slang_linalg_OuterProductAccumulate(
 template<typename ElTy, uint N, typename BufTy>
 void __slang_linalg_VectorAccumulate(vector<ElTy, N> inputVec, BufTy buffer, uint offset)
 {
-    dx::linalg::InterlockedAccumulate(inputVec, buffer, offset);
+    // No dx::linalg wrapper for cooperative-vector reduce-sum yet; approximate with per-lane load/add/store
+    for (uint i = 0; i < N; ++i)
+    {
+        uint byteOffset = offset + i * uint(sizeof(ElTy));
+        ElTy cur = buffer.template Load<ElTy>(byteOffset);
+        buffer.template Store<ElTy>(byteOffset, cur + inputVec[i]);
+    }
 }
 )";
 

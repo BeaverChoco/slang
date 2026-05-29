@@ -33061,6 +33061,7 @@ int8_t4_packed pack_clamp_s8(int16_t4 unpackedValue)
 
 //@public:
 /// Read-only input to a broadcasting-launch node shader.
+#pragma warning(disable: 29116)
 __generic<T>
 [require(hlsl_spirv)]
 [__workGraphRecordType]
@@ -33087,6 +33088,7 @@ struct DispatchNodeInputRecord
         }
     }
 };
+#pragma warning(default: 29116)
 
 /// Read-only input to a thread-launch node shader.
 __generic<T>
